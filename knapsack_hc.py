@@ -1,90 +1,51 @@
-import time
 import random
-from typing import List, Tuple, Dict
-from knapsack_base import KnapsackAlgorithmBase  
+import time
+from typing import List, Tuple
+from knapsack_base import KnapsackAlgorithmBase
 
-class KnapsackHillClimbing(KnapsackAlgorithmBase):
-    """
-    Giải bài toán Knapsack (0/1) sử dụng thuật toán Hill Climbing (Leo đồi).
+class HillClimbing(KnapsackAlgorithmBase):
+    """Giải bài toán Knapsack bằng thuật toán Hill Climbing."""
 
-    Thuật toán này cài đặt phiên bản "Steepest Ascent" (Leo đồi dốc nhất).
-    Nó bắt đầu với một nghiệm ban đầu và lặp đi lặp lại việc di chuyển đến
-    hàng xóm tốt nhất, cho đến khi đạt đến đỉnh cục bộ.
-    """
-
-    def __init__(self, *args, **kwargs):
-        """Khởi tạo, gọi Class cơ sở."""
-        super().__init__(*args, **kwargs)
-
-    def _generate_initial_solution(self) -> List[int]:
-        """
-        Tạo nghiệm ban đầu. 
-        Cách đơn giản nhất là bắt đầu với một cái túi rỗng (toàn số 0).
-        Đây là một nghiệm hợp lệ và thuật toán sẽ "leo" từ đây.
-        """
-        return [0] * self._n
-
-    def _get_neighbors(self, sol: List[int]) -> List[List[int]]:
-        """
-        Tạo ra tất cả các "hàng xóm" của nghiệm hiện tại.
-        Một hàng xóm được định nghĩa là nghiệm có 1 bit bị lật (0->1 hoặc 1->0).
-        """
-        neighbors = []
-        for i in range(self._n):
-            neighbor = sol.copy()
-            neighbor[i] = 1 - neighbor[i]  
-            neighbors.append(neighbor)
-        return neighbors
+    def _generate_neighbor(self, sol: List[int]) -> List[int]:
+        """Tạo lân cận bằng cách đảo bit ngẫu nhiên tại một vị trí."""
+        new_sol = sol[:]
+        i = random.randint(0, self._n - 1)
+        new_sol[i] = 1 - new_sol[i] 
+        return new_sol
 
     def solve(self) -> Tuple[List[str], List[str], float]:
-        """
-        Chạy thuật toán Hill Climbing (Steepest Ascent).
-
-        Trả về:
-            Tuple[List[str], List[str], float]: 
-            (Tên các vật phẩm được chọn, Tên các vật phẩm không được chọn, Tổng giá trị tốt nhất)
-        """
+        """Thực thi thuật toán Hill Climbing để tìm nghiệm tối ưu."""
         start_time = time.time()
-
-        current_solution = self._generate_initial_solution()
-        current_value = self._fitness_value(current_solution)
-
-        self.best_solution = current_solution.copy()
-        self.best_value = current_value
-        self.history.append((0, self.best_value))
-
         
-        for i in range(1, self._max_iterations + 1):
-            neighbors = self._get_neighbors(current_solution)
-            best_neighbor = None
-            best_neighbor_value = -1  
+        current_solution = [random.randint(0, 1) for _ in range(self._n)]
+        current_value, current_weight = self._calculate_fitness(current_solution)
 
-            for neighbor in neighbors:
-                neighbor_value = self._fitness_value(neighbor)
-                if neighbor_value > best_neighbor_value:
-                    best_neighbor_value = neighbor_value
-                    best_neighbor = neighbor
+        while current_weight > self._capacity:
+            ones_indices = [i for i, v in enumerate(current_solution) if v == 1]
+            if not ones_indices: break
+            
+            idx = random.choice(ones_indices)
+            current_solution[idx] = 0
+            current_value, current_weight = self._calculate_fitness(current_solution)
 
-            
-            if best_neighbor is None or best_neighbor_value <= current_value:
-                
-                if self.history[-1][0] != i - 1:
-                     self.history.append((i - 1, self.best_value))
-                break
-            
-            current_solution = best_neighbor
-            current_value = best_neighbor_value
+        self.best_solution = current_solution[:]
+        self.best_value, best_weight = current_value, current_weight
+        self.history = []
 
-            
-            self.best_solution = current_solution.copy()
-            self.best_value = current_value
-            
-            self.history.append((i, self.best_value))
+        for iteration in range(self._max_iterations):
+            neighbor = self._generate_neighbor(current_solution)
+            value, weight = self._calculate_fitness(neighbor)
+
+            if weight <= self._capacity and value > current_value:
+                current_solution = neighbor[:]
+                current_value, current_weight = value, weight
+                if current_value > self.best_value:
+                    self.best_solution = current_solution[:]
+                    self.best_value, best_weight = current_value, current_weight
+
+            self.history.append(f"Lần {iteration}: Giá trị={current_value}, Trọng lượng={current_weight}")
 
         self.exec_time = time.time() - start_time
-
         
-        selected_items = [self._item_names[i] for i in range(self._n) if self.best_solution[i] == 1]
-        unselected_items = [self._item_names[i] for i in range(self._n) if self.best_solution[i] == 0]
-
-        return selected_items, unselected_items, self.best_value
+        selected_items = [self._item_names[i] for i, v in enumerate(self.best_solution) if v == 1]
+        return selected_items, self.history, self.exec_time
