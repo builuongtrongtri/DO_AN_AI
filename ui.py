@@ -29,7 +29,23 @@ class KnapsackApp:
         self.create_widgets()
 
     def create_widgets(self):
-        pass     
+ 
+        self.max_w_entry = ttk.Entry(self.root)
+        self.iter_entry = ttk.Entry(self.root)
+        self.run_button = ttk.Button(self.root, text="Chạy (Chưa gán lệnh)") 
+        
+        self.data_combobox = ttk.Combobox(self.root, values=self.data_files)
+        self.tree = ttk.Treeview(self.root)
+        
+        self.hc_result = Text(self.root, height=8)
+        self.hc_history = Text(self.root)
+        self.gwo_result = Text(self.root, height=8)
+        self.gwo_history = Text(self.root)
+       
+        try:
+            self.load_data_and_populate_tree(self.data_files[0])
+        except Exception as e:
+            pass 
     def load_selected_data(self):
         pass 
     def load_data_and_populate_tree(self, filename: str):
@@ -45,4 +61,5 @@ class KnapsackApp:
     def _check_running_threads(self):
         pass 
     def start_parallel_run(self):
+
         pass 
