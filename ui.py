@@ -51,13 +51,47 @@ class KnapsackApp:
     def load_data_and_populate_tree(self, filename: str):
         pass 
     def clear_results(self):
-        pass 
+        """Xóa tất cả kết quả và lịch sử."""
+        self.hc_result.delete(1.0, "end"); self.gwo_result.delete(1.0, "end")
+        self.hc_history.delete(1.0, "end"); self.gwo_history.delete(1.0, "end")
 
     def _run_single_algo(self, method_name, algo_class, result_text, history_text, names, values, weights, max_w, max_iter):
-        pass 
+        """Hàm chạy thuật toán trong một luồng riêng biệt (luồng worker)."""
+        try:
+            if method_name == "Grey Wolf Optimizer":
+                 algo_instance = algo_class(names, values, weights, max_w, max_iter, num_wolves=30)
+            else:
+                 algo_instance = algo_class(names, values, weights, max_w, max_iter)
+
+            selected, hist, t = algo_instance.solve()
+
+            total_val = sum(values[i] for i, n in enumerate(names) if n in selected)
+            total_w = sum(weights[i] for i, n in enumerate(names) if n in selected)
+
+            self.root.after(0, self._update_gui, method_name, selected, hist, t, total_val, total_w, max_w, names, values, weights, result_text, history_text)
+
+        except Exception as e:
+            self.root.after(0, lambda: messagebox.showerror(f"Lỗi {method_name}", str(e)))
+            self.root.after(0, self._check_running_threads) # Gọi hàm của Dev 3
 
     def _update_gui(self, method_name, selected, hist, t, total_val, total_w, max_w, names, values, weights, result_text, history_text):
-        pass 
+        """Cập nhật giao diện an toàn trên luồng chính của Tkinter."""
+        result_text.delete(1.0, "end")
+        history_text.delete(1.0, "end")
+
+        result_text.insert("end", f"Thuật toán: {method_name}\n")
+        result_text.insert("end", f"Tổng giá trị: {total_val}\nTổng khối lượng: {total_w}/{max_w}\n")
+        result_text.insert("end", f"Số vật phẩm được chọn: {len(selected)}\nThời gian: {t:.4f}s\n\n")
+
+        for i, name in enumerate(selected, 1):
+            idx = names.index(name)
+            result_text.insert("end", f"{i:2d}. {name} ({values[idx]} - {weights[idx]})\n")
+
+        history_text.insert("end", "\n".join(hist))
+
+        self.root.update_idletasks()
+
+        self._check_running_threads() # Gọi hàm của Dev 3
     def _check_running_threads(self):
         pass 
     def start_parallel_run(self):
